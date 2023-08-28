@@ -1,0 +1,18 @@
+# Logs
+*.log
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# VS Code directory
+.vscode
+
+# Postgres data
+user-segmenter-postgres/
+
+# env file
+.env
