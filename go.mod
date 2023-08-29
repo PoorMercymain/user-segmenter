@@ -3,6 +3,7 @@ module github.com/PoorMercymain/user-segmenter
 go 1.20
 
 require (
+	github.com/caarlos0/env/v6 v6.10.1
 	github.com/golang/mock v1.6.0
 	github.com/gosimple/slug v1.13.1
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa

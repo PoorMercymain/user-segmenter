@@ -17,6 +17,7 @@ import (
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
 	jsonduplicatechecker "github.com/PoorMercymain/user-segmenter/pkg/json-duplicate-checker"
 	jsonmimechecker "github.com/PoorMercymain/user-segmenter/pkg/json-mime-checker"
+	"github.com/PoorMercymain/user-segmenter/pkg/logger"
 )
 
 type segment struct {
@@ -156,15 +157,15 @@ func (h *segment) DeleteSegment(c echo.Context) error {
 	}
 
 	err = h.srv.DeleteSegment(c.Request().Context(), slug.Slug)
-
 	if err != nil {
 		if errors.Is(err, appErrors.ErrorNoRows) {
 			c.Response().WriteHeader(http.StatusNotFound)
 			return err
 		}
 
+		log, _ := logger.GetLogger()
+		log.Infoln(err)
 		c.Response().WriteHeader(http.StatusInternalServerError)
-
 		return err
 	}
 
@@ -322,7 +323,17 @@ func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
 		return err
 	}
 
-	endDate, err := time.Parse("2006-01", endDateStr)
+	endDateBuf, err := time.Parse("2006-01", endDateStr)
+	if err != nil {
+		c.Response().WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+	endDateBuf = endDateBuf.AddDate(0, 1, 0)
+	endDateBuf = endDateBuf.Add(-time.Millisecond)
+
+	endDateStr = endDateBuf.Format(time.RFC3339)
+
+	endDate, err := time.Parse(time.RFC3339, endDateStr)
 	if err != nil {
 		c.Response().WriteHeader(http.StatusBadRequest)
 		return err
@@ -356,6 +367,5 @@ func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
 		w.Flush()
 	}
 
-	c.Response().WriteHeader(http.StatusOK)
 	return err
 }
