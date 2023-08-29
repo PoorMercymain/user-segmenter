@@ -3,11 +3,13 @@ package handler
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 
@@ -81,13 +83,12 @@ func (h *segment) CreateSegment(c echo.Context) error {
 		return err
 	}
 
-	if slug.Slug == "" {
+	if slug.Slug == "" || slug.PercentOfUsers < 0 || slug.PercentOfUsers > 100 {
 		c.Response().WriteHeader(http.StatusBadRequest)
 		return nil
 	}
 
 	err = h.srv.CreateSegment(c.Request().Context(), slug.Slug)
-
 	if err != nil {
 		if errors.Is(err, appErrors.ErrorNotASlug) {
 			c.Response().WriteHeader(http.StatusUnprocessableEntity)
@@ -100,8 +101,15 @@ func (h *segment) CreateSegment(c echo.Context) error {
 		}
 
 		c.Response().WriteHeader(http.StatusInternalServerError)
-
 		return err
+	}
+
+	if slug.PercentOfUsers != 0 {
+		err = h.srv.AddSegmentToPercentOfUsers(c.Request().Context(), slug.Slug, slug.PercentOfUsers)
+		if err != nil && !errors.Is(err, appErrors.ErrorNoRows) {
+			c.Response().WriteHeader(http.StatusInternalServerError)
+			return err
+		}
 	}
 
 	c.Response().WriteHeader(http.StatusOK)
@@ -198,8 +206,22 @@ func (h *segment) UpdateUserSegments(c echo.Context) error {
 		return err
 	}
 
-	err = h.srv.UpdateUserSegments(c.Request().Context(), userUpdate.UserID, userUpdate.SlugsToAdd, userUpdate.SlugsToDelete)
+	if len(userUpdate.SlugsToAdd) != len(userUpdate.TTL) && len(userUpdate.TTL) != 0 {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return nil
+	}
 
+	var TTLs []time.Time
+	for _, TTL := range userUpdate.TTL {
+		oneOfTTLs, err := time.Parse(time.RFC3339, TTL)
+		if err != nil {
+			c.Response().WriteHeader(http.StatusBadRequest)
+			return err
+		}
+		TTLs = append(TTLs, oneOfTTLs)
+	}
+
+	err = h.srv.UpdateUserSegments(c.Request().Context(), userUpdate.UserID, userUpdate.SlugsToAdd, userUpdate.SlugsToDelete)
 	if err != nil {
 		if errors.Is(err, appErrors.ErrorNoRows) {
 			c.Response().WriteHeader(http.StatusNotFound)
@@ -208,6 +230,14 @@ func (h *segment) UpdateUserSegments(c echo.Context) error {
 
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return err
+	}
+
+	for i, TTL := range TTLs {
+		err = h.srv.CreateDeletionTime(c.Request().Context(), userUpdate.UserID, userUpdate.SlugsToAdd[i], TTL)
+		if err != nil {
+			c.Response().WriteHeader(http.StatusInternalServerError)
+			return err
+		}
 	}
 
 	c.Response().WriteHeader(http.StatusOK)
@@ -218,10 +248,6 @@ func (h *segment) ReadUserSegments(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	userID := c.Param("user")
-	if userID == "" {
-		c.Response().WriteHeader(http.StatusBadRequest)
-		return nil
-	}
 
 	slugs, err := h.srv.ReadUserSegments(c.Request().Context(), userID)
 	if err != nil {
@@ -232,6 +258,11 @@ func (h *segment) ReadUserSegments(c echo.Context) error {
 
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return err
+	}
+
+	if len(slugs) == 0 {
+		c.Response().WriteHeader(http.StatusNoContent)
+		return nil
 	}
 
 	var slugsBytes []byte
@@ -265,5 +296,66 @@ func (h *segment) ReadUserSegments(c echo.Context) error {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return err
 	}
+
+	c.Response().WriteHeader(http.StatusOK)
 	return nil
+}
+
+func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
+	defer c.Request().Body.Close()
+
+	userID := c.Param("user")
+
+	startDateStr := c.QueryParam("start")
+	endDateStr := c.QueryParam("end")
+	if startDateStr == "" {
+		startDateStr = "1900-01" // some date when user definetely could not be added
+	}
+
+	if endDateStr == "" {
+		endDateStr = time.Now().Format("2006-01")
+	}
+
+	startDate, err := time.Parse("2006-01", startDateStr)
+	if err != nil {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return err
+	}
+
+	endDate, err := time.Parse("2006-01", endDateStr)
+	if err != nil {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return err
+	}
+
+	history, err := h.srv.ReadUserSegmentsHistory(c.Request().Context(), userID, startDate, endDate)
+	if err != nil {
+		if errors.Is(err, appErrors.ErrorNoRows) {
+			c.Response().WriteHeader(http.StatusNotFound)
+			return err
+		}
+		c.Response().WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+
+	if len(history) == 0 {
+		c.Response().WriteHeader(http.StatusNoContent)
+		return nil
+	}
+
+	w := csv.NewWriter(c.Response().Writer)
+	c.Response().Header().Set("Content-Type", "text/csv")
+	w.Comma = ';'
+
+	for _, historyElement := range history {
+		historyElementStrSlice := []string{historyElement.UserID, historyElement.Slug, historyElement.Operation, historyElement.DateTime.Format(time.RFC3339)}
+		if err := w.Write(historyElementStrSlice); err != nil {
+			c.Response().WriteHeader(http.StatusInternalServerError)
+			return err
+		}
+		w.Flush()
+	}
+
+	c.Response().WriteHeader(http.StatusOK)
+	return err
 }

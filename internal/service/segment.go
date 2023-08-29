@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/PoorMercymain/user-segmenter/errors"
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
@@ -34,4 +35,16 @@ func (s *segment) UpdateUserSegments(ctx context.Context, userID string, slugsTo
 
 func (s *segment) ReadUserSegments(ctx context.Context, userID string) ([]string, error) {
 	return s.repo.ReadUserSegments(ctx, userID)
+}
+
+func (s *segment) ReadUserSegmentsHistory(ctx context.Context, userID string, startDate, endDate time.Time) ([]domain.HistoryElem, error) {
+	return s.repo.ReadUserSegmentsHistory(ctx, userID, startDate, endDate)
+}
+
+func (s *segment) CreateDeletionTime(ctx context.Context, userID string, slug string, deletionTime time.Time) error {
+	return s.repo.CreateDeletionTime(ctx, userID, slug, deletionTime)
+}
+
+func (s *segment) AddSegmentToPercentOfUsers(ctx context.Context, slug string, percent int) error {
+	return s.repo.AddSegmentToPercentOfUsers(ctx, slug, percent)
 }

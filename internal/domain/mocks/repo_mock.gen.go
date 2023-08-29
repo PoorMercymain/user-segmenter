@@ -7,7 +7,9 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
+	domain "github.com/PoorMercymain/user-segmenter/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -32,6 +34,34 @@ func NewMockSegmentRepository(ctrl *gomock.Controller) *MockSegmentRepository {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSegmentRepository) EXPECT() *MockSegmentRepositoryMockRecorder {
 	return m.recorder
+}
+
+// AddSegmentToPercentOfUsers mocks base method.
+func (m *MockSegmentRepository) AddSegmentToPercentOfUsers(arg0 context.Context, arg1 string, arg2 int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddSegmentToPercentOfUsers", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddSegmentToPercentOfUsers indicates an expected call of AddSegmentToPercentOfUsers.
+func (mr *MockSegmentRepositoryMockRecorder) AddSegmentToPercentOfUsers(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSegmentToPercentOfUsers", reflect.TypeOf((*MockSegmentRepository)(nil).AddSegmentToPercentOfUsers), arg0, arg1, arg2)
+}
+
+// CreateDeletionTime mocks base method.
+func (m *MockSegmentRepository) CreateDeletionTime(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDeletionTime", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateDeletionTime indicates an expected call of CreateDeletionTime.
+func (mr *MockSegmentRepositoryMockRecorder) CreateDeletionTime(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDeletionTime", reflect.TypeOf((*MockSegmentRepository)(nil).CreateDeletionTime), arg0, arg1, arg2, arg3)
 }
 
 // CreateSegment mocks base method.
@@ -75,6 +105,21 @@ func (m *MockSegmentRepository) ReadUserSegments(arg0 context.Context, arg1 stri
 func (mr *MockSegmentRepositoryMockRecorder) ReadUserSegments(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadUserSegments", reflect.TypeOf((*MockSegmentRepository)(nil).ReadUserSegments), arg0, arg1)
+}
+
+// ReadUserSegmentsHistory mocks base method.
+func (m *MockSegmentRepository) ReadUserSegmentsHistory(arg0 context.Context, arg1 string, arg2, arg3 time.Time) ([]domain.HistoryElem, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadUserSegmentsHistory", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]domain.HistoryElem)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadUserSegmentsHistory indicates an expected call of ReadUserSegmentsHistory.
+func (mr *MockSegmentRepositoryMockRecorder) ReadUserSegmentsHistory(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadUserSegmentsHistory", reflect.TypeOf((*MockSegmentRepository)(nil).ReadUserSegmentsHistory), arg0, arg1, arg2, arg3)
 }
 
 // UpdateUserSegments mocks base method.
