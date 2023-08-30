@@ -8,6 +8,10 @@ import (
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
 )
 
+var (
+	_ domain.ReportService = (*report)(nil)
+)
+
 type report struct {
 	repo domain.ReportRepository
 }

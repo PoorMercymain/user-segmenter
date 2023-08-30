@@ -8,6 +8,10 @@ import (
 	slugvalidator "github.com/PoorMercymain/user-segmenter/pkg/slug-validator"
 )
 
+var (
+	_ domain.SegmentService = (*segment)(nil)
+)
+
 type segment struct {
 	repo domain.SegmentRepository
 }

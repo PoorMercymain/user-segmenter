@@ -15,6 +15,10 @@ import (
 	"github.com/PoorMercymain/user-segmenter/pkg/logger"
 )
 
+var (
+	_ domain.ReportRepository = (*report)(nil)
+)
+
 type report struct {
 	*postgres
 }

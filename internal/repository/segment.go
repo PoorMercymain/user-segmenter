@@ -10,8 +10,13 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	appErrors "github.com/PoorMercymain/user-segmenter/errors"
+	"github.com/PoorMercymain/user-segmenter/internal/domain"
 	"github.com/PoorMercymain/user-segmenter/pkg/logger"
 	uniquenumbersgenerator "github.com/PoorMercymain/user-segmenter/pkg/unique-numbers-generator"
+)
+
+var (
+	_ domain.SegmentRepository = (*segment)(nil)
 )
 
 type segment struct {

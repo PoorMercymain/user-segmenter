@@ -7,7 +7,12 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	appErrors "github.com/PoorMercymain/user-segmenter/errors"
+	"github.com/PoorMercymain/user-segmenter/internal/domain"
 	"github.com/PoorMercymain/user-segmenter/pkg/logger"
+)
+
+var (
+	_ domain.UserRepository = (*user)(nil)
 )
 
 type user struct {

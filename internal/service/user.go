@@ -7,6 +7,10 @@ import (
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
 )
 
+var (
+	_ domain.UserService = (*user)(nil)
+)
+
 type user struct {
 	repo domain.UserRepository
 }
