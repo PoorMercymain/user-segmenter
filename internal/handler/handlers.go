@@ -3,7 +3,6 @@ package handler
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 
 	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
@@ -28,28 +27,32 @@ func NewSegment(srv domain.SegmentService) *segment {
 	return &segment{srv: srv}
 }
 
-// @Title UserSegmenter API
-// @Description Сервис динамического сегментирования пользователей.
-// @Version 1.0
+// @title UserSegmenter API
+// @version 1.0
+// @description Сервис динамического сегментирования пользователей
 
-// @BasePath /api
-// @Host localhost:8080
+// @host localhost:8080
+// @BasePath /
 
-// @Tag.name Slugs
-// @Tag.description "Группа запросов для управления сегментами"
+// @Tag.name Segments
+// @Tag.description Группа запросов для управления списком существующих сегментов
 
-// CreateSegment godoc
-// @Tags Slugs
+// @Tag.name Users
+// @Tag.description Группа запросов для управления сегментами пользователя
+
+// @Schemes http
+
+// @Tags Segments
 // @Summary Запрос для создания нового сегмента
 // @Description Запрос для создания сегмента по уникальному названию
 // @Accept json
-// @Produce json
-// @Param slug string
+// @Param input body domain.Slug true "segment info"
 // @Success 200
-// @Failure 400 {string} string "Неверный формат запроса"
-// @Failure 422 {string} string "Передан не slug"
-// @Failure 500 {string} string "Внутренняя ошибка"
-// @Router /segment [post]
+// @Failure 404
+// @Failure 500
+// @Failure 400
+// @Failure 409
+// @Router /api/segment [post]
 func (h *segment) CreateSegment(c echo.Context) error {
 	defer c.Request().Body.Close()
 
@@ -117,6 +120,16 @@ func (h *segment) CreateSegment(c echo.Context) error {
 	return nil
 }
 
+// @Tags Segments
+// @Summary Запрос для удаления сегмента
+// @Description Запрос для удаления сегмента из списка существующих сегментов по уникальному названию
+// @Accept json
+// @Param input body domain.SlugNoPercent true "segment info"
+// @Success 202
+// @Failure 404
+// @Failure 500
+// @Failure 400
+// @Router /api/segment [delete]
 func (h *segment) DeleteSegment(c echo.Context) error {
 	defer c.Request().Body.Close()
 
@@ -144,7 +157,7 @@ func (h *segment) DeleteSegment(c echo.Context) error {
 	d := json.NewDecoder(c.Request().Body)
 	d.DisallowUnknownFields()
 
-	var slug domain.Slug
+	var slug domain.SlugNoPercent
 
 	if err := d.Decode(&slug); err != nil {
 		c.Response().WriteHeader(http.StatusBadRequest)
@@ -173,8 +186,30 @@ func (h *segment) DeleteSegment(c echo.Context) error {
 	return nil
 }
 
-func (h *segment) UpdateUserSegments(c echo.Context) error {
+type user struct {
+	srv domain.UserService
+}
+
+func NewUser(srv domain.UserService) *user {
+	return &user{srv: srv}
+}
+
+// @Tags Users
+// @Summary Запрос обновления сегментов пользователя
+// @Description Запрос для обновления списка сегментов пользователя
+// @Accept json
+// @Param input body domain.UserUpdate true "user segment info"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Failure 400
+// @Router /api/user [post]
+func (h *user) UpdateUserSegments(c echo.Context) error {
 	defer c.Request().Body.Close()
+	log, err := logger.GetLogger()
+	if err != nil {
+		return err
+	}
 
 	if !jsonmimechecker.IsJSONContentTypeCorrect(c.Request()) {
 		c.Response().WriteHeader(http.StatusBadRequest)
@@ -216,6 +251,7 @@ func (h *segment) UpdateUserSegments(c echo.Context) error {
 	for _, TTL := range userUpdate.TTL {
 		oneOfTTLs, err := time.Parse(time.RFC3339, TTL)
 		if err != nil {
+			log.Infoln(err)
 			c.Response().WriteHeader(http.StatusBadRequest)
 			return err
 		}
@@ -245,7 +281,17 @@ func (h *segment) UpdateUserSegments(c echo.Context) error {
 	return nil
 }
 
-func (h *segment) ReadUserSegments(c echo.Context) error {
+// @Tags Users
+// @Summary Запрос чтения сегментов пользователя
+// @Description Запрос для получения списка сегментов пользователя
+// @Produce json
+// @Param id path string true "user id"
+// @Success 200
+// @Success 204
+// @Failure 404
+// @Failure 500
+// @Router /api/user/{id} [get]
+func (h *user) ReadUserSegments(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	userID := c.Param("user")
@@ -302,7 +348,27 @@ func (h *segment) ReadUserSegments(c echo.Context) error {
 	return nil
 }
 
-func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
+type report struct {
+	srv domain.ReportService
+}
+
+func NewReport(srv domain.ReportService) *report {
+	return &report{srv: srv}
+}
+
+// @Tags Users
+// @Summary Запрос формирования отчета по истории сегментов пользователя
+// @Description Запрос для создания отчета по истории сегментов пользователя в формате csv
+// @Produce plain
+// @Param id path string true "user id"
+// @Param start query string false "start date"
+// @Param end query string false "end date"
+// @Success 200
+// @Failure 404
+// @Failure 400
+// @Failure 500
+// @Router /api/user-history/{id} [get]
+func (h *report) ReadUserSegmentsHistory(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	userID := c.Param("user")
@@ -310,24 +376,28 @@ func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
 	startDateStr := c.QueryParam("start")
 	endDateStr := c.QueryParam("end")
 	if startDateStr == "" {
-		startDateStr = "1900-01" // some date when user definetely could not be added
+		startDateStr = "1900-01" // some date when user definitely could not be added
 	}
 
-	if endDateStr == "" {
-		endDateStr = time.Now().Format("2006-01")
-	}
-
-	startDate, err := time.Parse("2006-01", startDateStr)
+	startDate, err := time.Parse("2006-1", startDateStr)
 	if err != nil {
 		c.Response().WriteHeader(http.StatusBadRequest)
 		return err
 	}
 
-	endDateBuf, err := time.Parse("2006-01", endDateStr)
-	if err != nil {
-		c.Response().WriteHeader(http.StatusInternalServerError)
+	endDateBuf, err := time.Parse("2006-1", endDateStr)
+	if err != nil && endDateStr == "" {
+		endDateStr = time.Now().Format("2006-1")
+		endDateBuf, err = time.Parse("2006-1", endDateStr)
+		if err != nil {
+			c.Response().WriteHeader(http.StatusInternalServerError)
+			return err
+		}
+	} else if err != nil {
+		c.Response().WriteHeader(http.StatusBadRequest)
 		return err
 	}
+
 	endDateBuf = endDateBuf.AddDate(0, 1, 0)
 	endDateBuf = endDateBuf.Add(-time.Millisecond)
 
@@ -335,11 +405,11 @@ func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
 
 	endDate, err := time.Parse(time.RFC3339, endDateStr)
 	if err != nil {
-		c.Response().WriteHeader(http.StatusBadRequest)
+		c.Response().WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 
-	history, err := h.srv.ReadUserSegmentsHistory(c.Request().Context(), userID, startDate, endDate)
+	filename, err := h.srv.CreateCSV(c.Request().Context(), userID, startDate, endDate)
 	if err != nil {
 		if errors.Is(err, appErrors.ErrorNoRows) {
 			c.Response().WriteHeader(http.StatusNotFound)
@@ -349,23 +419,41 @@ func (h *segment) ReadUserSegmentsHistory(c echo.Context) error {
 		return err
 	}
 
-	if len(history) == 0 {
-		c.Response().WriteHeader(http.StatusNoContent)
-		return nil
-	}
+	c.Response().Write([]byte(c.Request().Context().Value(domain.Key("server")).(string) + "/api/" + strings.Replace(filename, "\\", "/", -1)))
+	return nil
+}
 
-	w := csv.NewWriter(c.Response().Writer)
+// @Tags Users
+// @Summary Запрос чтения отчета по истории сегментов пользователя
+// @Description Запрос для получения отчета по истории сегментов пользователя в формате csv
+// @Produce text/csv
+// @Param filename path string true "report filename"
+// @Success 200
+// @Success 204
+// @Failure 404
+// @Failure 500
+// @Router /api/reports/{filename} [get]
+func (h *report) ReadUserSegmentsHistoryReport(c echo.Context) error {
+	defer c.Request().Body.Close()
+
+	reportName := c.Param("report")
+
 	c.Response().Header().Set("Content-Type", "text/csv")
-	w.Comma = ';'
+	c.Response().Header().Set("Content-Disposition", "attachment; filename="+reportName)
 
-	for _, historyElement := range history {
-		historyElementStrSlice := []string{historyElement.UserID, historyElement.Slug, historyElement.Operation, historyElement.DateTime.Format(time.RFC3339)}
-		if err := w.Write(historyElementStrSlice); err != nil {
-			c.Response().WriteHeader(http.StatusInternalServerError)
+	err := h.srv.SendCSVReportFile(reportName, c.Response())
+	if err != nil {
+		if errors.Is(err, appErrors.ErrorFileNotFound) {
+			c.Response().WriteHeader(http.StatusNotFound)
 			return err
 		}
-		w.Flush()
-	}
 
-	return err
+		if errors.Is(err, appErrors.ErrorEmptyFile) {
+			c.Response().WriteHeader(http.StatusNoContent)
+			return err
+		}
+
+		c.Response().WriteHeader(http.StatusInternalServerError)
+	}
+	return nil
 }

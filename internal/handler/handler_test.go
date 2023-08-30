@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
 
 	"github.com/PoorMercymain/user-segmenter/errors"
@@ -26,37 +26,54 @@ func testRouter(t *testing.T) *echo.Echo {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockSegmentRepository(ctrl)
+	mockSegRepo := mocks.NewMockSegmentRepository(ctrl)
+	mockUsrRepo := mocks.NewMockUserRepository(ctrl)
+	mockRepRepo := mocks.NewMockReportRepository(ctrl)
 
-	mockRepo.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockSegRepo.EXPECT().CreateSegment(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	mockRepo.EXPECT().DeleteSegment(gomock.Any(), gomock.Any()).Return(errors.ErrorNoRows).MaxTimes(1)
-	mockRepo.EXPECT().DeleteSegment(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockSegRepo.EXPECT().DeleteSegment(gomock.Any(), gomock.Any()).Return(errors.ErrorNoRows).MaxTimes(1)
+	mockSegRepo.EXPECT().DeleteSegment(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorNoRows).MaxTimes(1)
-	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockUsrRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorNoRows).MaxTimes(1)
+	mockUsrRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(make([]string, 0), nil).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, errors.ErrorLoggerNotInitialized).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return([]string{"a"}, nil).AnyTimes()
+	mockUsrRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
+	mockUsrRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(make([]string, 0), nil).MaxTimes(1)
+	mockUsrRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockUsrRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return([]string{"a"}, nil).AnyTimes()
 
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorLoggerNotInitialized).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(make([]domain.HistoryElem, 0), nil).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]domain.HistoryElem{{UserID: "1", Slug: "a", Operation: "addition", DateTime: time.Now()}}, nil).AnyTimes()
+	mockRepRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
+	mockRepRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockRepRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(make([]domain.HistoryElem, 0), nil).MaxTimes(1)
+	mockRepRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]domain.HistoryElem{{UserID: "1", Slug: "a", Operation: "addition", DateTime: time.Now()}}, nil).AnyTimes()
 
-	mockRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
-	mockRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mockSegRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockSegRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	segSrv := service.NewSegment(mockRepo)
+	mockRepRepo.EXPECT().CreateCSV(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.ErrorNoRows).MaxTimes(1)
+	mockRepRepo.EXPECT().CreateCSV(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockRepRepo.EXPECT().CreateCSV(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("report1.csv", nil).AnyTimes()
+
+	mockRepRepo.EXPECT().SendCSVReportFile(gomock.Any(), gomock.Any()).Return(errors.ErrorFileNotFound).MaxTimes(1)
+	mockRepRepo.EXPECT().SendCSVReportFile(gomock.Any(), gomock.Any()).Return(errors.ErrorEmptyFile).MaxTimes(1)
+	mockRepRepo.EXPECT().SendCSVReportFile(gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockRepRepo.EXPECT().SendCSVReportFile(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	segSrv := service.NewSegment(mockSegRepo)
+	usrSrv := service.NewUser(mockUsrRepo)
+	repSrv := service.NewReport(mockRepRepo)
+
 	segHan := NewSegment(segSrv)
+	usrHan := NewUser(usrSrv)
+	repHan := NewReport(repSrv)
 
 	e.POST("/api/segment", segHan.CreateSegment, middleware.UseGzipReader())
 	e.DELETE("/api/segment", segHan.DeleteSegment, middleware.UseGzipReader())
-	e.POST("/api/user", segHan.UpdateUserSegments, middleware.UseGzipReader())
-	e.GET("/api/user/:user", segHan.ReadUserSegments)
-	e.GET("/api/user-history/:user", segHan.ReadUserSegmentsHistory)
+	e.POST("/api/user", usrHan.UpdateUserSegments, middleware.UseGzipReader())
+	e.GET("/api/user/:user", usrHan.ReadUserSegments)
+	e.GET("/api/user-history/:user", repHan.ReadUserSegmentsHistory, middleware.AddServerAddressToContext(""))
+	e.GET("/api/reports/:report", repHan.ReadUserSegmentsHistoryReport)
 
 	return e
 }
@@ -386,14 +403,21 @@ func TestReadUserSegmentsHistory(t *testing.T) {
 			"/api/user-history/1",
 			http.MethodGet,
 			"",
-			http.StatusNoContent,
+			http.StatusOK,
 			"",
 		},
 		{
-			"/api/user-history/1",
+			"/api/user-history/1?start=123",
 			http.MethodGet,
 			"",
-			http.StatusOK,
+			http.StatusBadRequest,
+			"",
+		},
+		{
+			"/api/user-history/1?start=1234-11&end=123",
+			http.MethodGet,
+			"",
+			http.StatusBadRequest,
 			"",
 		},
 		{
@@ -404,8 +428,69 @@ func TestReadUserSegmentsHistory(t *testing.T) {
 			"",
 		},
 	}
+	logger.InitLogger()
+	log, _ := logger.GetLogger()
 
-	for _, testCase := range testTable {
+	for i, testCase := range testTable {
+		log.Infoln(i)
+		resp := request(t, ts, testCase.code, testCase.method, testCase.content, testCase.body, testCase.endpoint)
+		resp.Body.Close()
+	}
+}
+
+func TestReadUserSegmentsHistoryReport(t *testing.T) {
+	ts := httptest.NewServer(testRouter(t))
+
+	defer ts.Close()
+
+	var testTable = []struct {
+		endpoint string
+		method   string
+		content  string
+		code     int
+		body     string
+	}{
+		{
+			"/api/reports/report1.csv",
+			http.MethodGet,
+			"",
+			http.StatusNotFound,
+			"",
+		},
+		{
+			"/api/reports/report1.csv",
+			http.MethodGet,
+			"",
+			http.StatusNoContent,
+			"",
+		},
+		{
+			"/api/reports/report1.csv",
+			http.MethodGet,
+			"",
+			http.StatusInternalServerError,
+			"",
+		},
+		{
+			"/api/reports/report1.csv",
+			http.MethodGet,
+			"",
+			http.StatusOK,
+			"",
+		},
+		{
+			"/api/reports/",
+			http.MethodGet,
+			"",
+			http.StatusNotFound,
+			"",
+		},
+	}
+	logger.InitLogger()
+	log, _ := logger.GetLogger()
+
+	for i, testCase := range testTable {
+		log.Infoln(i)
 		resp := request(t, ts, testCase.code, testCase.method, testCase.content, testCase.body, testCase.endpoint)
 		resp.Body.Close()
 	}

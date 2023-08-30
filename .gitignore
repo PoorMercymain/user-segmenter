@@ -16,3 +16,6 @@ user-segmenter-postgres/
 
 # env file
 .env
+
+# Any reports
+reports/*

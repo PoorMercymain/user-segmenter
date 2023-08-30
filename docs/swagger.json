@@ -1,0 +1,302 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Сервис динамического сегментирования пользователей",
+        "title": "UserSegmenter API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/reports/{filename}": {
+            "get": {
+                "description": "Запрос для получения отчета по истории сегментов пользователя в формате csv",
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Запрос чтения отчета по истории сегментов пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "report filename",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/segment": {
+            "post": {
+                "description": "Запрос для создания сегмента по уникальному названию",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Segments"
+                ],
+                "summary": "Запрос для создания нового сегмента",
+                "parameters": [
+                    {
+                        "description": "segment info",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_PoorMercymain_user-segmenter_internal_domain.Slug"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "409": {
+                        "description": "Conflict"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Запрос для удаления сегмента из списка существующих сегментов по уникальному названию",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Segments"
+                ],
+                "summary": "Запрос для удаления сегмента",
+                "parameters": [
+                    {
+                        "description": "segment info",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_PoorMercymain_user-segmenter_internal_domain.SlugNoPercent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/user": {
+            "post": {
+                "description": "Запрос для обновления списка сегментов пользователя",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Запрос обновления сегментов пользователя",
+                "parameters": [
+                    {
+                        "description": "user segment info",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_PoorMercymain_user-segmenter_internal_domain.UserUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/user-history/{id}": {
+            "get": {
+                "description": "Запрос для создания отчета по истории сегментов пользователя в формате csv",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Запрос формирования отчета по истории сегментов пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "user id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "start date",
+                        "name": "start",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "end date",
+                        "name": "end",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/user/{id}": {
+            "get": {
+                "description": "Запрос для получения списка сегментов пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Запрос чтения сегментов пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "user id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_PoorMercymain_user-segmenter_internal_domain.Slug": {
+            "type": "object",
+            "properties": {
+                "percent": {
+                    "type": "integer"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_PoorMercymain_user-segmenter_internal_domain.SlugNoPercent": {
+            "type": "object",
+            "properties": {
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_PoorMercymain_user-segmenter_internal_domain.UserUpdate": {
+            "type": "object",
+            "properties": {
+                "slugs_to_add": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "slugs_to_delete": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ttl": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "description": "Группа запросов для управления списком существующих сегментов",
+            "name": "Segments"
+        },
+        {
+            "description": "Группа запросов для управления сегментами пользователя",
+            "name": "Users"
+        }
+    ]
+}

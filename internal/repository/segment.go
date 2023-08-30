@@ -8,46 +8,18 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	appErrors "github.com/PoorMercymain/user-segmenter/errors"
-	"github.com/PoorMercymain/user-segmenter/internal/domain"
 	"github.com/PoorMercymain/user-segmenter/pkg/logger"
 	uniquenumbersgenerator "github.com/PoorMercymain/user-segmenter/pkg/unique-numbers-generator"
 )
 
 type segment struct {
-	*pgxpool.Pool
+	*postgres
 }
 
-func NewSegment(pool *pgxpool.Pool) *segment {
-	return &segment{pool}
-}
-
-func ConnectToPostgres(DSN string) (*pgxpool.Pool, error) {
-	log, err := logger.GetLogger()
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := pgxpool.ParseConfig(DSN)
-	if err != nil {
-		log.Infoln(err)
-		return nil, err
-	}
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
-	if err != nil {
-		log.Infoln(err)
-		return nil, err
-	}
-
-	err = pool.Ping(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return pool, nil
+func NewSegment(pg *postgres) *segment {
+	return &segment{pg}
 }
 
 func (r *segment) CreateSegment(ctx context.Context, slug string) error {
@@ -97,14 +69,15 @@ func (r *segment) DeleteSegment(ctx context.Context, slug string) error {
 	}
 	defer conn.Release()
 
-	var count int
-	err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM slugs WHERE slug = $1", slug).Scan(&count)
+	var sl string
+	err = conn.QueryRow(ctx, "SELECT slug FROM slugs WHERE slug = $1", slug).Scan(&sl)
 	if err == pgx.ErrNoRows {
 		return appErrors.ErrorNoRows
 	} else if err != nil {
 		log.Infoln(err)
 		return err
 	}
+	log.Infoln(sl)
 
 	_, err = conn.Exec(ctx, "DELETE FROM slugs WHERE slug = $1", slug)
 	if err != nil {
@@ -114,7 +87,7 @@ func (r *segment) DeleteSegment(ctx context.Context, slug string) error {
 	go func() {
 		c := context.Background()
 
-		conn, err := r.Acquire(ctx)
+		conn, err := r.Acquire(c)
 		if err != nil {
 			log.Infoln(err)
 			return
@@ -174,187 +147,6 @@ func (r *segment) DeleteSegment(ctx context.Context, slug string) error {
 	return nil
 }
 
-func (r *segment) UpdateUserSegments(ctx context.Context, userID string, slugsToAdd []string, slugsToDelete []string) error {
-	log, err := logger.GetLogger()
-	if err != nil {
-		return err
-	}
-
-	conn, err := r.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
-	slugs := append(slugsToAdd, slugsToDelete...)
-
-	var str string
-
-	for _, slug := range slugs {
-
-		err = conn.QueryRow(ctx, "SELECT slug FROM slugs WHERE slug = $1", slug).Scan(&str)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				return appErrors.ErrorNoRows
-			}
-			return err
-		}
-	}
-
-	err = conn.QueryRow(ctx, "SELECT user_id FROM users WHERE user_id = $1", userID).Scan(&str)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			conn.Exec(ctx, "INSERT INTO users VALUES ($1, $2)", userID, make([]string, 0))
-		} else {
-			return err
-		}
-	}
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			log.Infoln(err)
-		}
-	}()
-
-	for _, slug := range slugsToAdd {
-		updateResult, err := tx.Exec(ctx, "UPDATE users SET slugs = array_append(slugs, $1) WHERE user_id = $2 AND NOT $1 = ANY(slugs)", slug, userID)
-		if err != nil {
-			return err
-		}
-
-		if updateResult.RowsAffected() != 0 {
-			_, err = tx.Exec(ctx, "INSERT INTO users_segment_history VALUES ($1, $2, $3, $4)", userID, slug, time.Now(), false)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, slug := range slugsToDelete {
-		err = conn.QueryRow(ctx, "SELECT user_id FROM users WHERE user_id = $1 AND $2 = ANY(slugs)", userID, slug).Scan(&str)
-		if err != nil {
-			if err == pgx.ErrNoRows {
-				return appErrors.ErrorNoRows
-			}
-			return err
-		}
-	}
-
-	for _, slug := range slugsToDelete {
-		updateResult, err := tx.Exec(ctx, "UPDATE users SET slugs = array_remove(slugs, $1) WHERE user_id = $2 AND $1 = ANY(slugs)", slug, userID)
-		if err != nil {
-			return err
-		}
-		if updateResult.RowsAffected() != 0 {
-			_, err = tx.Exec(ctx, "INSERT INTO users_segment_history VALUES ($1, $2, $3, $4)", userID, slug, time.Now(), true)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return tx.Commit(ctx)
-}
-
-func (r *segment) ReadUserSegments(ctx context.Context, userID string) ([]string, error) {
-	conn, err := r.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-
-	var slugs []string
-
-	err = conn.QueryRow(ctx, "SELECT slugs FROM users WHERE user_id = $1", userID).Scan(&slugs)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, appErrors.ErrorNoRows
-		}
-		return nil, err
-	}
-
-	return slugs, nil
-}
-
-func (r *segment) ReadUserSegmentsHistory(ctx context.Context, userID string, startDate, endDate time.Time) ([]domain.HistoryElem, error) {
-	conn, err := r.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-
-	var history []domain.HistoryElem
-
-	var str string
-
-	err = conn.QueryRow(ctx, "SELECT user_id FROM users WHERE user_id = $1", userID).Scan(&str)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, appErrors.ErrorNoRows
-		}
-		return nil, err
-	}
-
-	rows, err := conn.Query(ctx, "SELECT * FROM users_segment_history WHERE user_id = $1 AND modified_at <= $2 AND modified_at >= $3 ORDER BY modified_at DESC", userID, endDate, startDate)
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		var historyElement domain.HistoryElem
-		var isDeletion bool
-		err = rows.Scan(&historyElement.UserID, &historyElement.Slug, &historyElement.DateTime, &isDeletion)
-		if err != nil {
-			return nil, err
-		}
-
-		historyElement.Operation = "addition"
-		if isDeletion {
-			historyElement.Operation = "deletion"
-		}
-
-		history = append(history, historyElement)
-	}
-
-	return history, nil
-}
-
-func (r *segment) CreateDeletionTime(ctx context.Context, userID string, slug string, deletionTime time.Time) error {
-	log, err := logger.GetLogger()
-	if err != nil {
-		return err
-	}
-
-	conn, err := r.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Release()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			log.Infoln(err)
-		}
-	}()
-
-	_, err = tx.Exec(ctx, "INSERT INTO deletion_times VALUES ($1, $2, $3)", userID, slug, deletionTime)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
-}
-
 func (r *segment) AddSegmentToPercentOfUsers(ctx context.Context, slug string, percent int) error {
 	log, err := logger.GetLogger()
 	if err != nil {
@@ -378,15 +170,18 @@ func (r *segment) AddSegmentToPercentOfUsers(ctx context.Context, slug string, p
 	}
 
 	go func() {
-		randomNumbersMap, err := uniquenumbersgenerator.GenerateUniqueNonNegativeNumbers(int((usersAmount/100)*percent), usersAmount)
+		choosenAmount := int((float64(usersAmount) / 100) * float64(percent))
+		log.Infoln(choosenAmount, usersAmount, percent)
+		randomNumbersMap, err := uniquenumbersgenerator.GenerateUniqueNonNegativeNumbers(choosenAmount, usersAmount)
 		if err != nil {
 			log.Infoln(err)
 			return
 		}
 
+		log.Infoln(randomNumbersMap)
 		c := context.Background()
 
-		conn, err := r.Acquire(ctx)
+		conn, err := r.Acquire(c)
 		if err != nil {
 			log.Infoln(err)
 			return
@@ -407,7 +202,7 @@ func (r *segment) AddSegmentToPercentOfUsers(ctx context.Context, slug string, p
 
 		for randNum := range randomNumbersMap {
 			var userID string
-			err = tx.QueryRow(c, "SELECT user_id LIMIT 1 OFFSET $1", randNum).Scan(&userID)
+			err = tx.QueryRow(c, "SELECT user_id FROM users ORDER BY user_id DESC LIMIT 1 OFFSET $1 ", randNum).Scan(&userID)
 			if err != nil {
 				log.Infoln(err)
 				return
@@ -429,5 +224,74 @@ func (r *segment) AddSegmentToPercentOfUsers(ctx context.Context, slug string, p
 		}
 	}()
 
+	return nil
+}
+
+func (r *segment) DeleteExpiredSegments(ctx context.Context) error {
+	log, err := logger.GetLogger()
+	if err != nil {
+		return err
+	}
+
+	conn, err := r.Acquire(ctx)
+	if err != nil {
+		log.Infoln(err)
+		return err
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(ctx, "SELECT user_id, slug FROM deletion_times WHERE deletion_timestamp <= $1", time.Now())
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var userID, slug string
+		err = rows.Scan(&userID, &slug)
+		if err != nil {
+			return err
+		}
+
+		conn, err := r.Acquire(ctx)
+		if err != nil {
+			log.Infoln(err)
+			return err
+		}
+		defer conn.Release()
+
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			log.Infoln(err)
+			return err
+		}
+		defer func() {
+			err = tx.Rollback(ctx)
+			if err != nil {
+				log.Infoln(err)
+			}
+		}()
+
+		execResult, err := tx.Exec(ctx, "UPDATE users SET slugs = array_remove(slugs, $1) WHERE user_id = $2 AND $1 = ANY(slugs)", slug, userID)
+		if err != nil {
+			return err
+		}
+		t := time.Now()
+		_, err = tx.Exec(ctx, "DELETE FROM deletion_times WHERE user_id = $1 AND slug = $2", userID, slug)
+		if err != nil {
+			return err
+		}
+		if execResult.RowsAffected() != 0 {
+			_, err = tx.Exec(ctx, "INSERT INTO users_segment_history VALUES ($1, $2, $3, $4)", userID, slug, t, true)
+			if err != nil {
+				log.Infoln(err)
+				return err
+			}
+		}
+		err = tx.Commit(ctx)
+		if err != nil {
+			log.Infoln(err)
+			return err
+		}
+	}
 	return nil
 }

@@ -65,17 +65,17 @@ func TestUpdateUserSegments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockSegmentRepository(ctrl)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	seg := NewSegment(mockRepo)
+	usr := NewUser(mockRepo)
 
 	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
 	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	err := seg.UpdateUserSegments(context.Background(), "1", []string{"a"}, []string{"b"})
+	err := usr.UpdateUserSegments(context.Background(), "1", []string{"a"}, []string{"b"})
 	require.Error(t, err)
 
-	err = seg.UpdateUserSegments(context.Background(), "1", []string{"a"}, []string{"b"})
+	err = usr.UpdateUserSegments(context.Background(), "1", []string{"a"}, []string{"b"})
 	require.NoError(t, err)
 }
 
@@ -84,18 +84,18 @@ func TestReadUserSegments(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockSegmentRepository(ctrl)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	seg := NewSegment(mockRepo)
+	usr := NewUser(mockRepo)
 
 	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
 	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return([]string{"a", "b"}, nil).AnyTimes()
 
-	userSegments, err := seg.ReadUserSegments(context.Background(), "1")
+	userSegments, err := usr.ReadUserSegments(context.Background(), "1")
 	require.Error(t, err)
 	require.Empty(t, userSegments)
 
-	userSegments, err = seg.ReadUserSegments(context.Background(), "1")
+	userSegments, err = usr.ReadUserSegments(context.Background(), "1")
 	require.NoError(t, err)
 	require.Len(t, userSegments, 2)
 }
@@ -105,18 +105,18 @@ func TestReadUserSegmentsHistory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockSegmentRepository(ctrl)
+	mockRepo := mocks.NewMockReportRepository(ctrl)
 
-	seg := NewSegment(mockRepo)
+	rep := NewReport(mockRepo)
 
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]domain.HistoryElem{{UserID: "1", Slug: "a", Operation: "addition", DateTime: time.Now()}}, nil).AnyTimes()
+	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
+	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]domain.HistoryElem{{UserID: "1", Slug: "a", Operation: "addition", DateTime: time.Now()}}, nil).AnyTimes()
 
-	history, err := seg.ReadUserSegmentsHistory(context.Background(), "1", time.Now(), time.Now())
+	history, err := rep.ReadUserSegmentsHistory(context.Background(), "1", time.Now(), time.Now(), 1, 1)
 	require.Error(t, err)
 	require.Empty(t, history)
 
-	history, err = seg.ReadUserSegmentsHistory(context.Background(), "1", time.Now(), time.Now())
+	history, err = rep.ReadUserSegmentsHistory(context.Background(), "1", time.Now(), time.Now(), 1, 1)
 	require.NoError(t, err)
 	require.Len(t, history, 1)
 }
@@ -126,17 +126,17 @@ func TestCreateDeletionTime(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockRepo := mocks.NewMockSegmentRepository(ctrl)
+	mockRepo := mocks.NewMockUserRepository(ctrl)
 
-	seg := NewSegment(mockRepo)
+	usr := NewUser(mockRepo)
 
 	mockRepo.EXPECT().CreateDeletionTime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
 	mockRepo.EXPECT().CreateDeletionTime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	err := seg.CreateDeletionTime(context.Background(), "1", "a", time.Now())
+	err := usr.CreateDeletionTime(context.Background(), "1", "a", time.Now())
 	require.Error(t, err)
 
-	err = seg.CreateDeletionTime(context.Background(), "1", "a", time.Now())
+	err = usr.CreateDeletionTime(context.Background(), "1", "a", time.Now())
 	require.NoError(t, err)
 }
 
