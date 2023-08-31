@@ -25,7 +25,7 @@ definitions:
         type: array
       slugs_to_delete:
         example:
-        - ANOTHER_SEGMENT_NAME
+        - SEGMENT_NAME
         items:
           type: string
         type: array
