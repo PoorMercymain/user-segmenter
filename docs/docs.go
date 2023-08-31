@@ -23,7 +23,7 @@ const docTemplate = `{
                     "text/csv"
                 ],
                 "tags": [
-                    "Users"
+                    "Reports"
                 ],
                 "summary": "Запрос чтения отчета по истории сегментов пользователя",
                 "parameters": [
@@ -41,6 +41,9 @@ const docTemplate = `{
                     },
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request"
                     },
                     "404": {
                         "description": "Not Found"
@@ -76,11 +79,11 @@ const docTemplate = `{
                     "200": {
                         "description": "OK"
                     },
+                    "202": {
+                        "description": "Accepted"
+                    },
                     "400": {
                         "description": "Bad Request"
-                    },
-                    "404": {
-                        "description": "Not Found"
                     },
                     "409": {
                         "description": "Conflict"
@@ -170,7 +173,7 @@ const docTemplate = `{
                     "text/plain"
                 ],
                 "tags": [
-                    "Users"
+                    "Reports"
                 ],
                 "summary": "Запрос формирования отчета по истории сегментов пользователя",
                 "parameters": [
@@ -191,6 +194,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "end date",
                         "name": "end",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "exact date",
+                        "name": "exact",
                         "in": "query"
                     }
                 ],
@@ -301,6 +310,10 @@ const docTemplate = `{
         {
             "description": "Группа запросов для управления сегментами пользователя",
             "name": "Users"
+        },
+        {
+            "description": "Группа запросов для работы с отчетами по истории сегментов пользователя",
+            "name": "Reports"
         }
     ]
 }`

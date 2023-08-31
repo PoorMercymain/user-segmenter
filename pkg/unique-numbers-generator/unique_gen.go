@@ -4,18 +4,18 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/PoorMercymain/user-segmenter/errors"
+	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 )
 
 func GenerateUniqueNonNegativeNumbers(amount int, rightLimit int) (map[int]struct{}, error) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 
 	if rightLimit <= 0 {
-		return nil, errors.ErrorInvalidRightLimit
+		return nil, appErrors.ErrorInvalidRightLimit
 	}
 
 	if rightLimit < amount {
-		return nil, errors.ErrorRightLimitIsTooLow
+		return nil, appErrors.ErrorRightLimitIsTooLow
 	}
 
 	uniqueNumbers := make(map[int]struct{}, 0)

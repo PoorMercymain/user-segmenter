@@ -8,7 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/PoorMercymain/user-segmenter/errors"
+	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
 	"github.com/PoorMercymain/user-segmenter/internal/domain/mocks"
 	"github.com/PoorMercymain/user-segmenter/pkg/logger"
@@ -69,7 +69,7 @@ func TestUpdateUserSegments(t *testing.T) {
 
 	usr := NewUser(mockRepo)
 
-	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(appErrors.ErrorLoggerNotInitialized).MaxTimes(1)
 	mockRepo.EXPECT().UpdateUserSegments(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	err := usr.UpdateUserSegments(context.Background(), "1", []string{"a"}, []string{"b"})
@@ -88,7 +88,7 @@ func TestReadUserSegments(t *testing.T) {
 
 	usr := NewUser(mockRepo)
 
-	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
+	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return(nil, appErrors.ErrorNoRows).MaxTimes(1)
 	mockRepo.EXPECT().ReadUserSegments(gomock.Any(), gomock.Any()).Return([]string{"a", "b"}, nil).AnyTimes()
 
 	userSegments, err := usr.ReadUserSegments(context.Background(), "1")
@@ -109,7 +109,7 @@ func TestReadUserSegmentsHistory(t *testing.T) {
 
 	rep := NewReport(mockRepo)
 
-	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.ErrorNoRows).MaxTimes(1)
+	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, appErrors.ErrorNoRows).MaxTimes(1)
 	mockRepo.EXPECT().ReadUserSegmentsHistory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]domain.HistoryElem{{UserID: "1", Slug: "a", Operation: "addition", DateTime: time.Now()}}, nil).AnyTimes()
 
 	history, err := rep.ReadUserSegmentsHistory(context.Background(), "1", time.Now(), time.Now(), 1, 1)
@@ -130,7 +130,7 @@ func TestCreateDeletionTime(t *testing.T) {
 
 	usr := NewUser(mockRepo)
 
-	mockRepo.EXPECT().CreateDeletionTime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockRepo.EXPECT().CreateDeletionTime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(appErrors.ErrorLoggerNotInitialized).MaxTimes(1)
 	mockRepo.EXPECT().CreateDeletionTime(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	err := usr.CreateDeletionTime(context.Background(), "1", "a", time.Now())
@@ -149,7 +149,7 @@ func TestAddSegmentToPercentOfUsers(t *testing.T) {
 
 	seg := NewSegment(mockRepo)
 
-	mockRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.ErrorLoggerNotInitialized).MaxTimes(1)
+	mockRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(appErrors.ErrorLoggerNotInitialized).MaxTimes(1)
 	mockRepo.EXPECT().AddSegmentToPercentOfUsers(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	err := seg.AddSegmentToPercentOfUsers(context.Background(), "a", 10)

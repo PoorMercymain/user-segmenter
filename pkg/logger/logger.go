@@ -3,7 +3,7 @@ package logger
 import (
 	"go.uber.org/zap"
 
-	"github.com/PoorMercymain/user-segmenter/errors"
+	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 )
 
 var instance *zap.SugaredLogger
@@ -25,7 +25,7 @@ func GetLogger() (*zap.SugaredLogger, error) {
 	var err error
 
 	if instance == nil {
-		err = errors.ErrorLoggerNotInitialized
+		err = appErrors.ErrorLoggerNotInitialized
 	}
 
 	return instance, err

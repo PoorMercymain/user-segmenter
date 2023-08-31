@@ -28,11 +28,6 @@ func NewSegment(pg *postgres) *segment {
 }
 
 func (r *segment) CreateSegment(ctx context.Context, slug string) error {
-	log, err := logger.GetLogger()
-	if err != nil {
-		return err
-	}
-
 	conn, err := r.Acquire(ctx)
 	if err != nil {
 		return err
@@ -43,12 +38,7 @@ func (r *segment) CreateSegment(ctx context.Context, slug string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			log.Infoln(err)
-		}
-	}()
+	defer tx.Rollback(ctx)
 
 	var pgErr *pgconn.PgError
 	_, err = tx.Exec(ctx, "INSERT INTO slugs VALUES ($1)", slug)
@@ -104,12 +94,7 @@ func (r *segment) DeleteSegment(ctx context.Context, slug string) error {
 			log.Infoln(err)
 			return
 		}
-		defer func() {
-			err = tx.Rollback(c)
-			if err != nil {
-				log.Infoln(err)
-			}
-		}()
+		defer tx.Rollback(c)
 
 		userIDs := make([]string, 0, 1)
 
@@ -198,12 +183,7 @@ func (r *segment) AddSegmentToPercentOfUsers(ctx context.Context, slug string, p
 			log.Infoln(err)
 			return
 		}
-		defer func() {
-			err = tx.Rollback(c)
-			if err != nil {
-				log.Infoln(err)
-			}
-		}()
+		defer tx.Rollback(c)
 
 		for randNum := range randomNumbersMap {
 			var userID string
@@ -269,12 +249,7 @@ func (r *segment) DeleteExpiredSegments(ctx context.Context) error {
 			log.Infoln(err)
 			return err
 		}
-		defer func() {
-			err = tx.Rollback(ctx)
-			if err != nil {
-				log.Infoln(err)
-			}
-		}()
+		defer tx.Rollback(ctx)
 
 		execResult, err := tx.Exec(ctx, "UPDATE users SET slugs = array_remove(slugs, $1) WHERE user_id = $2 AND $1 = ANY(slugs)", slug, userID)
 		if err != nil {

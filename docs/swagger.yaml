@@ -53,13 +53,15 @@ paths:
           description: OK
         "204":
           description: No Content
+        "400":
+          description: Bad Request
         "404":
           description: Not Found
         "500":
           description: Internal Server Error
       summary: Запрос чтения отчета по истории сегментов пользователя
       tags:
-      - Users
+      - Reports
   /api/segment:
     delete:
       consumes:
@@ -99,10 +101,10 @@ paths:
       responses:
         "200":
           description: OK
+        "202":
+          description: Accepted
         "400":
           description: Bad Request
-        "404":
-          description: Not Found
         "409":
           description: Conflict
         "500":
@@ -152,6 +154,10 @@ paths:
         in: query
         name: end
         type: string
+      - description: exact date
+        in: query
+        name: exact
+        type: string
       produces:
       - text/plain
       responses:
@@ -165,7 +171,7 @@ paths:
           description: Internal Server Error
       summary: Запрос формирования отчета по истории сегментов пользователя
       tags:
-      - Users
+      - Reports
   /api/user/{id}:
     get:
       description: Запрос для получения списка сегментов пользователя
@@ -197,3 +203,5 @@ tags:
   name: Segments
 - description: Группа запросов для управления сегментами пользователя
   name: Users
+- description: Группа запросов для работы с отчетами по истории сегментов пользователя
+  name: Reports

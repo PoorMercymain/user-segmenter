@@ -16,7 +16,6 @@ import (
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
 	jsonduplicatechecker "github.com/PoorMercymain/user-segmenter/pkg/json-duplicate-checker"
 	jsonmimechecker "github.com/PoorMercymain/user-segmenter/pkg/json-mime-checker"
-	"github.com/PoorMercymain/user-segmenter/pkg/logger"
 )
 
 type segment struct {
@@ -40,6 +39,9 @@ func NewSegment(srv domain.SegmentService) *segment {
 // @Tag.name Users
 // @Tag.description Группа запросов для управления сегментами пользователя
 
+// @Tag.name Reports
+// @Tag.description Группа запросов для работы с отчетами по истории сегментов пользователя
+
 // @Schemes http
 
 // @Tags Segments
@@ -48,7 +50,7 @@ func NewSegment(srv domain.SegmentService) *segment {
 // @Accept json
 // @Param input body domain.Slug true "segment info"
 // @Success 200
-// @Failure 404
+// @Success 202
 // @Failure 500
 // @Failure 400
 // @Failure 409
@@ -116,7 +118,11 @@ func (h *segment) CreateSegment(c echo.Context) error {
 		}
 	}
 
-	c.Response().WriteHeader(http.StatusOK)
+	if slug.PercentOfUsers == 0 {
+		c.Response().WriteHeader(http.StatusOK)
+		return nil
+	}
+	c.Response().WriteHeader(http.StatusAccepted)
 	return nil
 }
 
@@ -176,8 +182,6 @@ func (h *segment) DeleteSegment(c echo.Context) error {
 			return err
 		}
 
-		log, _ := logger.GetLogger()
-		log.Infoln(err)
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return err
 	}
@@ -206,10 +210,6 @@ func NewUser(srv domain.UserService) *user {
 // @Router /api/user [post]
 func (h *user) UpdateUserSegments(c echo.Context) error {
 	defer c.Request().Body.Close()
-	log, err := logger.GetLogger()
-	if err != nil {
-		return err
-	}
 
 	if !jsonmimechecker.IsJSONContentTypeCorrect(c.Request()) {
 		c.Response().WriteHeader(http.StatusBadRequest)
@@ -242,6 +242,11 @@ func (h *user) UpdateUserSegments(c echo.Context) error {
 		return err
 	}
 
+	if userUpdate.UserID == "" {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return nil
+	}
+
 	if len(userUpdate.SlugsToAdd) != len(userUpdate.TTL) && len(userUpdate.TTL) != 0 {
 		c.Response().WriteHeader(http.StatusBadRequest)
 		return nil
@@ -251,7 +256,6 @@ func (h *user) UpdateUserSegments(c echo.Context) error {
 	for _, TTL := range userUpdate.TTL {
 		oneOfTTLs, err := time.Parse(time.RFC3339, TTL)
 		if err != nil {
-			log.Infoln(err)
 			c.Response().WriteHeader(http.StatusBadRequest)
 			return err
 		}
@@ -356,27 +360,39 @@ func NewReport(srv domain.ReportService) *report {
 	return &report{srv: srv}
 }
 
-// @Tags Users
+// @Tags Reports
 // @Summary Запрос формирования отчета по истории сегментов пользователя
 // @Description Запрос для создания отчета по истории сегментов пользователя в формате csv
 // @Produce plain
 // @Param id path string true "user id"
 // @Param start query string false "start date"
 // @Param end query string false "end date"
+// @Param exact query string false "exact date"
 // @Success 200
 // @Failure 404
 // @Failure 400
 // @Failure 500
 // @Router /api/user-history/{id} [get]
-func (h *report) ReadUserSegmentsHistory(c echo.Context) error {
+func (h *report) CreateUserSegmentsHistoryReport(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	userID := c.Param("user")
 
 	startDateStr := c.QueryParam("start")
 	endDateStr := c.QueryParam("end")
+	exactDateStr := c.QueryParam("exact")
+
+	var wasStartDateProvided = true
+	var wasEndDateProvided = true
+	var wasExactDateProvided = true
+
+	if exactDateStr == "" {
+		wasExactDateProvided = false
+	}
+
 	if startDateStr == "" {
-		startDateStr = "1900-01" // some date when user definitely could not be added
+		startDateStr = "1970-02" // some date when user definitely could not be added
+		wasStartDateProvided = false
 	}
 
 	startDate, err := time.Parse("2006-1", startDateStr)
@@ -387,12 +403,8 @@ func (h *report) ReadUserSegmentsHistory(c echo.Context) error {
 
 	endDateBuf, err := time.Parse("2006-1", endDateStr)
 	if err != nil && endDateStr == "" {
-		endDateStr = time.Now().Format("2006-1")
-		endDateBuf, err = time.Parse("2006-1", endDateStr)
-		if err != nil {
-			c.Response().WriteHeader(http.StatusInternalServerError)
-			return err
-		}
+		wasEndDateProvided = false
+		endDateBuf = time.Now()
 	} else if err != nil {
 		c.Response().WriteHeader(http.StatusBadRequest)
 		return err
@@ -401,12 +413,44 @@ func (h *report) ReadUserSegmentsHistory(c echo.Context) error {
 	endDateBuf = endDateBuf.AddDate(0, 1, 0)
 	endDateBuf = endDateBuf.Add(-time.Millisecond)
 
-	endDateStr = endDateBuf.Format(time.RFC3339)
+	endDate := endDateBuf
 
-	endDate, err := time.Parse(time.RFC3339, endDateStr)
+	if (wasStartDateProvided || wasEndDateProvided) && wasExactDateProvided {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return nil
+	}
+
+	if endDate.UnixNano() < startDate.UnixNano() {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return nil
+	}
+
+	if wasExactDateProvided {
+		startDate, err = time.Parse("2006-1", exactDateStr)
+		if err != nil {
+			c.Response().WriteHeader(http.StatusBadRequest)
+			return err
+		}
+
+		endDate, err = time.Parse("2006-1", exactDateStr)
+		if err != nil {
+			c.Response().WriteHeader(http.StatusBadRequest)
+			return err
+		}
+
+		endDate = endDate.AddDate(0, 1, 0)
+		endDate = endDate.Add(-time.Millisecond)
+	}
+
+	oldDate, err := time.Parse("2006-1", "1970-02")
 	if err != nil {
 		c.Response().WriteHeader(http.StatusInternalServerError)
 		return err
+	}
+
+	if endDate.UnixNano() < oldDate.UnixNano() || startDate.UnixNano() < oldDate.UnixNano() {
+		c.Response().WriteHeader(http.StatusBadRequest)
+		return nil
 	}
 
 	filename, err := h.srv.CreateCSV(c.Request().Context(), userID, startDate, endDate)
@@ -419,11 +463,19 @@ func (h *report) ReadUserSegmentsHistory(c echo.Context) error {
 		return err
 	}
 
-	c.Response().Write([]byte(c.Request().Context().Value(domain.Key("server")).(string) + "/api/" + strings.Replace(filename, "\\", "/", -1)))
+	addr := strings.TrimPrefix(c.Request().Context().Value(domain.Key("server")).(string), "http://")
+	if strings.HasPrefix(addr, "0.0.0.0") {
+		addr = strings.TrimPrefix(addr, "0.0.0.0")
+		addr = "localhost" + addr
+	}
+
+	addr = "http://" + addr
+
+	c.Response().Write([]byte(addr + "/api/" + strings.Replace(filename, "\\", "/", -1)))
 	return nil
 }
 
-// @Tags Users
+// @Tags Reports
 // @Summary Запрос чтения отчета по истории сегментов пользователя
 // @Description Запрос для получения отчета по истории сегментов пользователя в формате csv
 // @Produce text/csv
@@ -432,6 +484,7 @@ func (h *report) ReadUserSegmentsHistory(c echo.Context) error {
 // @Success 204
 // @Failure 404
 // @Failure 500
+// @Failure 400
 // @Router /api/reports/{filename} [get]
 func (h *report) ReadUserSegmentsHistoryReport(c echo.Context) error {
 	defer c.Request().Body.Close()
@@ -450,6 +503,11 @@ func (h *report) ReadUserSegmentsHistoryReport(c echo.Context) error {
 
 		if errors.Is(err, appErrors.ErrorEmptyFile) {
 			c.Response().WriteHeader(http.StatusNoContent)
+			return err
+		}
+
+		if errors.Is(err, appErrors.ErrorBadFilename) {
+			c.Response().WriteHeader(http.StatusBadRequest)
 			return err
 		}
 

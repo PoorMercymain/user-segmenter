@@ -8,7 +8,6 @@ import (
 
 	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
-	"github.com/PoorMercymain/user-segmenter/pkg/logger"
 )
 
 var (
@@ -24,11 +23,6 @@ func NewUser(pg *postgres) *user {
 }
 
 func (r *user) UpdateUserSegments(ctx context.Context, userID string, slugsToAdd []string, slugsToDelete []string) error {
-	log, err := logger.GetLogger()
-	if err != nil {
-		return err
-	}
-
 	conn, err := r.Acquire(ctx)
 	if err != nil {
 		return err
@@ -63,12 +57,7 @@ func (r *user) UpdateUserSegments(ctx context.Context, userID string, slugsToAdd
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			log.Infoln(err)
-		}
-	}()
+	defer tx.Rollback(ctx)
 
 	for _, slug := range slugsToAdd {
 		updateResult, err := tx.Exec(ctx, "UPDATE users SET slugs = array_append(slugs, $1) WHERE user_id = $2 AND NOT $1 = ANY(slugs)", slug, userID)
@@ -131,11 +120,6 @@ func (r *user) ReadUserSegments(ctx context.Context, userID string) ([]string, e
 }
 
 func (r *user) CreateDeletionTime(ctx context.Context, userID string, slug string, deletionTime time.Time) error {
-	log, err := logger.GetLogger()
-	if err != nil {
-		return err
-	}
-
 	conn, err := r.Acquire(ctx)
 	if err != nil {
 		return err
@@ -146,12 +130,7 @@ func (r *user) CreateDeletionTime(ctx context.Context, userID string, slug strin
 	if err != nil {
 		return err
 	}
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			log.Infoln(err)
-		}
-	}()
+	defer tx.Rollback(ctx)
 
 	_, err = tx.Exec(ctx, "INSERT INTO deletion_times VALUES ($1, $2, $3) ON CONFLICT(user_id, slug) DO UPDATE SET deletion_timestamp = $3", userID, slug, deletionTime)
 	if err != nil {

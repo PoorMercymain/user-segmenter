@@ -43,7 +43,7 @@ func router(pgPool *pgxpool.Pool, serverAddress string) (*echo.Echo, error) {
 	e.DELETE("/api/segment", segHan.DeleteSegment, middleware.UseGzipReader())
 	e.POST("/api/user", usrHan.UpdateUserSegments, middleware.UseGzipReader())
 	e.GET("/api/user/:user", usrHan.ReadUserSegments)
-	e.GET("/api/user-history/:user", repHan.ReadUserSegmentsHistory, middleware.AddServerAddressToContext(serverAddress))
+	e.GET("/api/user-history/:user", repHan.CreateUserSegmentsHistoryReport, middleware.AddServerAddressToContext(serverAddress))
 	e.GET("/api/reports/:report", repHan.ReadUserSegmentsHistoryReport)
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 

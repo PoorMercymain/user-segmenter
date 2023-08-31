@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -110,17 +112,28 @@ func (r *report) CreateCSV(ctx context.Context, userID string, startDate, endDat
 
 func (r *report) SendCSVReportFile(reportName string, writer io.Writer) error {
 	log, _ := logger.GetLogger()
-	_, err := os.Stat(".\\reports\\" + reportName)
+
+	pattern := `^report\d+\.csv$`
+
+	re := regexp.MustCompile(pattern)
+
+	if !re.MatchString(reportName) {
+		return appErrors.ErrorBadFilename
+	}
+	pathToReport := filepath.Join("reports", reportName)
+
+	_, err := os.Stat(pathToReport)
 	if err != nil {
 		log.Infoln(err)
+		_, err := os.Stat(pathToReport)
 		if os.IsNotExist(err) {
 			return appErrors.ErrorFileNotFound
-		} else {
+		} else if err != nil {
 			return err
 		}
 	}
 
-	f, err := os.Open(".\\reports\\" + reportName)
+	f, err := os.Open(pathToReport)
 	if err != nil {
 		return err
 	}

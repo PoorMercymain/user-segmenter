@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/PoorMercymain/user-segmenter/errors"
+	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 )
 
 func CheckDuplicatesInJSON(d *json.Decoder, path []string) error {
@@ -30,7 +30,7 @@ func CheckDuplicatesInJSON(d *json.Decoder, path []string) error {
 			key := t.(string)
 
 			if keys[key] {
-				return errors.ErrorDuplicateInJSON
+				return appErrors.ErrorDuplicateInJSON
 			}
 			keys[key] = true
 

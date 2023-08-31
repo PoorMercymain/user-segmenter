@@ -18,3 +18,16 @@ services:
       timeout: 5s
       retries: 5
     command: [ "postgres", "-c", "log_statement=all" ]
+  user-segmenter:
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URI=${POSTGRES_DSN}
+      - RUN_ADDRESS=${SEGMENTER_SERVER_ADDRESS}
+    ports:
+      - "${PORT}:${PORT}"
+    volumes:
+      - ./reports:/user-segmenter/reports

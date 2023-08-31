@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
+	"strings"
 
-	"github.com/PoorMercymain/user-segmenter/errors"
+	appErrors "github.com/PoorMercymain/user-segmenter/errors"
 	"github.com/PoorMercymain/user-segmenter/internal/domain"
-	slugvalidator "github.com/PoorMercymain/user-segmenter/pkg/slug-validator"
+	slugValidator "github.com/PoorMercymain/user-segmenter/pkg/slug-validator"
 )
 
 var (
@@ -21,11 +22,11 @@ func NewSegment(repo domain.SegmentRepository) *segment {
 }
 
 func (s *segment) CreateSegment(ctx context.Context, slug string) error {
-	if slugvalidator.IsSlug(slug) {
+	if slugValidator.IsSlug(strings.ToLower(slug)) {
 		return s.repo.CreateSegment(ctx, slug)
 	}
 
-	return errors.ErrorNotASlug
+	return appErrors.ErrorNotASlug
 }
 
 func (s *segment) DeleteSegment(ctx context.Context, slug string) error {
