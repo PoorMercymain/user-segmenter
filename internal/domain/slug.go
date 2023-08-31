@@ -1,10 +1,10 @@
 package domain
 
 type Slug struct {
-	Slug           string `json:"slug"`
-	PercentOfUsers int    `json:"percent,omitempty"`
+	Slug           string `json:"slug" example:"SEGMENT_NAME"`
+	PercentOfUsers int    `json:"percent,omitempty" example:"10"`
 }
 
 type SlugNoPercent struct {
-	Slug string `json:"slug"`
+	Slug string `json:"slug" example:"SEGMENT_NAME"`
 }
