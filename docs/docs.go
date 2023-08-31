@@ -302,7 +302,7 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "ANOTHER_SEGMENT_NAME"
+                        "SEGMENT_NAME"
                     ]
                 },
                 "ttl": {
