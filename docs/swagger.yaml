@@ -3,30 +3,40 @@ definitions:
   github_com_PoorMercymain_user-segmenter_internal_domain.Slug:
     properties:
       percent:
+        example: 10
         type: integer
       slug:
+        example: SEGMENT_NAME
         type: string
     type: object
   github_com_PoorMercymain_user-segmenter_internal_domain.SlugNoPercent:
     properties:
       slug:
+        example: SEGMENT_NAME
         type: string
     type: object
   github_com_PoorMercymain_user-segmenter_internal_domain.UserUpdate:
     properties:
       slugs_to_add:
+        example:
+        - SEGMENT_NAME
         items:
           type: string
         type: array
       slugs_to_delete:
+        example:
+        - ANOTHER_SEGMENT_NAME
         items:
           type: string
         type: array
       ttl:
+        example:
+        - "2023-09-30T20:19:05+03:00"
         items:
           type: string
         type: array
       user_id:
+        example: "1"
         type: string
     type: object
 host: localhost:8080
@@ -42,6 +52,7 @@ paths:
         формате csv
       parameters:
       - description: report filename
+        example: report12345.csv
         in: path
         name: filename
         required: true
@@ -142,19 +153,23 @@ paths:
         формате csv
       parameters:
       - description: user id
+        example: "1"
         in: path
         name: id
         required: true
         type: string
       - description: start date
+        example: 2023-9
         in: query
         name: start
         type: string
       - description: end date
+        example: 2023-9
         in: query
         name: end
         type: string
       - description: exact date
+        example: 2023-9
         in: query
         name: exact
         type: string
@@ -177,6 +192,7 @@ paths:
       description: Запрос для получения списка сегментов пользователя
       parameters:
       - description: user id
+        example: "1"
         in: path
         name: id
         required: true

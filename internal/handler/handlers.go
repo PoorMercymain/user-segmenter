@@ -289,7 +289,7 @@ func (h *user) UpdateUserSegments(c echo.Context) error {
 // @Summary Запрос чтения сегментов пользователя
 // @Description Запрос для получения списка сегментов пользователя
 // @Produce json
-// @Param id path string true "user id"
+// @Param id path string true "user id" Example(1)
 // @Success 200
 // @Success 204
 // @Failure 404
@@ -364,10 +364,10 @@ func NewReport(srv domain.ReportService) *report {
 // @Summary Запрос формирования отчета по истории сегментов пользователя
 // @Description Запрос для создания отчета по истории сегментов пользователя в формате csv
 // @Produce plain
-// @Param id path string true "user id"
-// @Param start query string false "start date"
-// @Param end query string false "end date"
-// @Param exact query string false "exact date"
+// @Param id path string true "user id" Example(1)
+// @Param start query string false "start date" Example(2023-9)
+// @Param end query string false "end date" Example(2023-9)
+// @Param exact query string false "exact date" Example(2023-9)
 // @Success 200
 // @Failure 404
 // @Failure 400
@@ -479,7 +479,7 @@ func (h *report) CreateUserSegmentsHistoryReport(c echo.Context) error {
 // @Summary Запрос чтения отчета по истории сегментов пользователя
 // @Description Запрос для получения отчета по истории сегментов пользователя в формате csv
 // @Produce text/csv
-// @Param filename path string true "report filename"
+// @Param filename path string true "report filename" Example(report12345.csv)
 // @Success 200
 // @Success 204
 // @Failure 404

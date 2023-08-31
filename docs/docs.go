@@ -29,6 +29,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "example": "report12345.csv",
                         "description": "report filename",
                         "name": "filename",
                         "in": "path",
@@ -179,6 +180,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "example": "1",
                         "description": "user id",
                         "name": "id",
                         "in": "path",
@@ -186,18 +188,21 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "example": "2023-9",
                         "description": "start date",
                         "name": "start",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "example": "2023-9",
                         "description": "end date",
                         "name": "end",
                         "in": "query"
                     },
                     {
                         "type": "string",
+                        "example": "2023-9",
                         "description": "exact date",
                         "name": "exact",
                         "in": "query"
@@ -232,6 +237,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "example": "1",
                         "description": "user id",
                         "name": "id",
                         "in": "path",
@@ -260,10 +266,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "percent": {
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 10
                 },
                 "slug": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "SEGMENT_NAME"
                 }
             }
         },
@@ -271,7 +279,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "slug": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "SEGMENT_NAME"
                 }
             }
         },
@@ -282,22 +291,32 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "SEGMENT_NAME"
+                    ]
                 },
                 "slugs_to_delete": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "ANOTHER_SEGMENT_NAME"
+                    ]
                 },
                 "ttl": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "2023-09-30T20:19:05+03:00"
+                    ]
                 },
                 "user_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "1"
                 }
             }
         }
