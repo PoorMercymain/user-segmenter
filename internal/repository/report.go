@@ -111,8 +111,6 @@ func (r *report) CreateCSV(ctx context.Context, userID string, startDate, endDat
 }
 
 func (r *report) SendCSVReportFile(reportName string, writer io.Writer) error {
-	log, _ := logger.GetLogger()
-
 	pattern := `^report\d+\.csv$`
 
 	re := regexp.MustCompile(pattern)
@@ -124,7 +122,6 @@ func (r *report) SendCSVReportFile(reportName string, writer io.Writer) error {
 
 	_, err := os.Stat(pathToReport)
 	if err != nil {
-		log.Infoln(err)
 		_, err := os.Stat(pathToReport)
 		if os.IsNotExist(err) {
 			return appErrors.ErrorFileNotFound
